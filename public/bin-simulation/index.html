@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<!--
+  SMART BIN KIOSK - AI VISION INTERFACE
+  
+  SETUP INSTRUCTIONS:
+  - Uses TensorFlow.js COCO-SSD - NO API KEY NEEDED!
+  - Runs entirely in your browser, works offline after first load
+  - Detects: cell phone, laptop, bottle, cup, mouse, keyboard, and more
+  - Just click "IDENTIFY ME" and point camera at recyclable items
+  
+  Powered by TensorFlow.js - completely free and open source!
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Bin Kiosk - AI Vision</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --ink: #1a1a1a;
+        --pink: #ff4fa3;
+        --teal: #18c7b8;
+        --sky: #37a6ff;
+        --sun: #ffd33d;
+        --leaf: #2fd06f;
+        --border: #1a1a1a;
+        --pixel: 4px;
+      }
+
+      * {
+        box-sizing: border-box;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: #ffffff;
+        color: var(--ink);
+        font-family: "Press Start 2P", system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+      }
+
+      .screen {
+        min-height: 100%;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      /* Tablet portrait layout target: 1080x1920-ish */
+      .frame {
+        width: min(920px, 100%);
+        min-height: min(1600px, 100vh - 48px);
+        background: #fff;
+        border: calc(var(--pixel) * 2) solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 16px 60px rgba(0, 0, 0, 0.12);
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 18px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border: calc(var(--pixel)) solid var(--border);
+        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f6fbff 100%);
+      }
+
+      .badgeDot {
+        width: 14px;
+        height: 14px;
+        background: var(--leaf);
+        border: calc(var(--pixel) / 1.5) solid var(--border);
+        border-radius: 4px;
+        box-shadow: 0 0 0 4px rgba(47, 208, 111, 0.22);
+      }
+
+      .title {
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .rightMeta {
+        text-align: right;
+        font-size: 10px;
+        line-height: 1.8;
+      }
+
+      .card {
+        border: calc(var(--pixel) * 1.5) solid var(--border);
+        border-radius: 18px;
+        padding: 18px;
+        background: #fff;
+        position: relative;
+      }
+
+      .main {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        align-content: start;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      /* Mascot + bubble */
+      .mascotRow {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        justify-items: center;
+      }
+
+      .mascotDock {
+        width: min(560px, 100%);
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .mascot {
+        width: 140px;
+        height: 140px;
+        position: relative;
+        transform: translateY(240px);
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+
+      .mascot.enter {
+        animation: slideInBounce 900ms cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+      }
+
+      @keyframes slideInBounce {
+        0% {
+          transform: translateY(240px);
+          opacity: 0;
+        }
+        60% {
+          transform: translateY(-14px);
+          opacity: 1;
+        }
+        78% {
+          transform: translateY(6px);
+        }
+        100% {
+          transform: translateY(0);
+        }
+      }
+
+      .mascot.jump {
+        animation: mascotJump 520ms ease-out;
+      }
+
+      @keyframes mascotJump {
+        0% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-18px);
+        }
+        100% {
+          transform: translateY(0);
+        }
+      }
+
+      .mascot.corner {
+        animation: mascotToCorner 650ms cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+      }
+
+      @keyframes mascotToCorner {
+        0% {
+          transform: translate(0, 0) scale(1);
+        }
+        100% {
+          transform: translate(-300px, -210px) scale(0.78);
+        }
+      }
+
+      .mascot.centerAgain {
+        animation: mascotCenterAgain 650ms cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+      }
+
+      @keyframes mascotCenterAgain {
+        0% {
+          transform: translate(-300px, -210px) scale(0.78);
+        }
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+      }
+
+      /* Cute pixel dustbin built with CSS boxes */
+      .binLid {
+        position: absolute;
+        left: 50%;
+        top: 12px;
+        transform: translateX(-50%);
+        width: 124px;
+        height: 22px;
+        background: linear-gradient(180deg, #7be7ff 0%, #37a6ff 100%);
+        border: calc(var(--pixel) * 1.5) solid var(--border);
+        border-radius: 10px 10px 6px 6px;
+        box-shadow: 0 8px 0 rgba(0, 0, 0, 0.08);
+      }
+
+      .binLid::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -12px;
+        transform: translateX(-50%);
+        width: 26px;
+        height: 18px;
+        background: linear-gradient(180deg, #ffd33d 0%, #ffb300 100%);
+        border: calc(var(--pixel) * 1.2) solid var(--border);
+        border-radius: 10px;
+      }
+
+      .binBody {
+        position: absolute;
+        left: 50%;
+        top: 34px;
+        transform: translateX(-50%);
+        width: 112px;
+        height: 100px;
+        background: linear-gradient(180deg, #18c7b8 0%, #0ea89b 100%);
+        border: calc(var(--pixel) * 1.5) solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 12px 0 rgba(0, 0, 0, 0.10);
+      }
+
+      .binStripe {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        top: 20px;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 8px;
+      }
+
+      .face {
+        position: absolute;
+        left: 50%;
+        top: 44px;
+        transform: translateX(-50%);
+        width: 86px;
+        height: 46px;
+      }
+
+      .eye {
+        position: absolute;
+        top: 6px;
+        width: 14px;
+        height: 14px;
+        background: #fff;
+        border: calc(var(--pixel) * 0.8) solid var(--border);
+        border-radius: 6px;
+      }
+
+      .eye::after {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: 3px;
+        width: 6px;
+        height: 6px;
+        background: #1a1a1a;
+        border-radius: 3px;
+      }
+
+      .eye.left {
+        left: 10px;
+      }
+      .eye.right {
+        right: 10px;
+      }
+
+      .smile {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+        width: 46px;
+        height: 18px;
+        border: calc(var(--pixel) * 0.9) solid var(--border);
+        border-top: 0;
+        border-radius: 0 0 14px 14px;
+        background: rgba(255, 255, 255, 0.35);
+      }
+
+      .cheek {
+        position: absolute;
+        top: 26px;
+        width: 14px;
+        height: 10px;
+        background: rgba(255, 79, 163, 0.35);
+        border-radius: 6px;
+      }
+      .cheek.left {
+        left: 2px;
+      }
+      .cheek.right {
+        right: 2px;
+      }
+
+      .bubble {
+        background: #fff;
+        border: calc(var(--pixel) * 1.5) solid var(--border);
+        border-radius: 18px;
+        padding: 16px 16px;
+        position: relative;
+        box-shadow: 0 10px 0 rgba(0, 0, 0, 0.08);
+      }
+
+      .bubble::before {
+        content: "";
+        position: absolute;
+        left: -18px;
+        top: 46px;
+        width: 0;
+        height: 0;
+        border-top: 14px solid transparent;
+        border-bottom: 14px solid transparent;
+        border-right: 18px solid var(--border);
+      }
+
+      .bubble::after {
+        content: "";
+        position: absolute;
+        left: -12px;
+        top: 48px;
+        width: 0;
+        height: 0;
+        border-top: 12px solid transparent;
+        border-bottom: 12px solid transparent;
+        border-right: 14px solid #fff;
+      }
+
+      .bubbleText {
+        font-size: 12px;
+        line-height: 1.9;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .btn {
+        border: calc(var(--pixel) * 1.5) solid var(--border);
+        border-radius: 16px;
+        padding: 16px 18px;
+        background: #fff;
+        cursor: pointer;
+        font: inherit;
+        text-transform: uppercase;
+        box-shadow: 0 10px 0 rgba(0, 0, 0, 0.10);
+        transition: transform 80ms ease, box-shadow 80ms ease;
+        user-select: none;
+      }
+
+      .btn:active {
+        transform: translateY(6px);
+        box-shadow: 0 4px 0 rgba(0, 0, 0, 0.10);
+      }
+
+      .btnPrimary {
+        background: linear-gradient(180deg, #ffe680 0%, #ffd33d 100%);
+      }
+
+      .btnTeal {
+        background: linear-gradient(180deg, #a8fff7 0%, #18c7b8 100%);
+      }
+
+      .btnPink {
+        background: linear-gradient(180deg, #ffc0dd 0%, #ff4fa3 100%);
+        color: #fff;
+        text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.25);
+      }
+
+      .btnBig {
+        padding: 20px 22px;
+        font-size: 14px;
+        letter-spacing: 0.5px;
+      }
+
+      .btnGhost {
+        background: #fff;
+        opacity: 0.85;
+      }
+
+      .hint {
+        text-align: center;
+        font-size: 10px;
+        line-height: 1.9;
+        color: #333;
+        opacity: 0.85;
+      }
+
+      /* QR section */
+      .qrWrap {
+        display: grid;
+        place-items: center;
+        gap: 14px;
+      }
+
+      #qr-reader {
+        width: min(520px, 100%);
+        border: calc(var(--pixel) * 2) solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+        background: #fff;
+      }
+
+      /* Video + detection */
+      .visionWrap {
+        display: grid;
+        place-items: center;
+        gap: 12px;
+      }
+
+      .videoBox {
+        position: relative;
+        width: min(720px, 100%);
+        aspect-ratio: 3 / 4;
+        background: #f6fbff;
+        border: calc(var(--pixel) * 2) solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 14px 0 rgba(0, 0, 0, 0.08);
+      }
+
+      video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      canvas#overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      .pixelBorder {
+        position: absolute;
+        inset: 10px;
+        border: calc(var(--pixel) * 1.5) solid var(--leaf);
+        border-radius: 14px;
+        pointer-events: none;
+        opacity: 0.8;
+      }
+
+      .statusLine {
+        text-align: center;
+        font-size: 11px;
+        line-height: 1.9;
+      }
+
+      .subReason {
+        text-align: center;
+        font-size: 9px;
+        line-height: 1.9;
+        opacity: 0.75;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        border-top: 2px dashed rgba(0, 0, 0, 0.15);
+        padding-top: 14px;
+        font-size: 10px;
+        line-height: 1.9;
+      }
+
+      .phasePill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: calc(var(--pixel)) solid var(--border);
+        border-radius: 999px;
+        background: #fff;
+      }
+
+      .pillIcon {
+        width: 12px;
+        height: 12px;
+        border-radius: 4px;
+        border: calc(var(--pixel) / 1.5) solid var(--border);
+        background: var(--sun);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* Confetti (pixel squares) */
+      .confettiLayer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .confetti {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(0, 0, 0, 0.18);
+        border-radius: 3px;
+        animation: confettiFall 1200ms ease-in forwards;
+      }
+
+      @keyframes confettiFall {
+        0% {
+          transform: translateY(-40px) rotate(0deg);
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(110vh) rotate(520deg);
+          opacity: 0;
+        }
+      }
+
+      /* Make it feel roomy on tall tablets */
+      @media (max-width: 680px) {
+        .frame {
+          min-height: unset;
+          padding: 16px;
+        }
+        .bubbleText {
+          font-size: 11px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="screen">
+      <div class="frame" id="frame">
+        <div class="confettiLayer" id="confettiLayer"></div>
+
+        <div class="topbar">
+          <div class="brand">
+            <div class="badge">
+              <span class="badgeDot"></span>
+              <div class="title">SMART BIN KIOSK</div>
+            </div>
+          </div>
+          <div class="rightMeta">
+            <div id="clock">--:--</div>
+            <div id="userMeta">USER: (NOT LOGGED)</div>
+          </div>
+        </div>
+
+        <div class="main">
+          <!-- Mascot + bubble -->
+          <div class="mascotRow">
+            <div class="mascotDock">
+              <div class="mascot" id="mascot" aria-hidden="true">
+                <div class="binLid"></div>
+                <div class="binBody">
+                  <div class="binStripe"></div>
+                  <div class="face">
+                    <div class="eye left"></div>
+                    <div class="eye right"></div>
+                    <div class="cheek left"></div>
+                    <div class="cheek right"></div>
+                    <div class="smile"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bubble" id="bubble">
+                <div class="bubbleText" id="bubbleText">Hi! Scan your App QR to login!</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Main: Identify trigger (no QR step) -->
+          <div class="card" id="identifyCard">
+            <div class="controls">
+              <button class="btn btnPrimary btnBig" id="identifyBtn" type="button">
+                IDENTIFY ME
+              </button>
+            </div>
+            <div class="hint">
+              Click <b>IDENTIFY ME</b> to open the camera and detect your item.
+            </div>
+          </div>
+
+          <!-- Vision (camera + detection) -->
+          <div class="card hidden" id="phase2">
+            <div class="visionWrap">
+              <div class="videoBox">
+                <video id="video" autoplay playsinline muted></video>
+                <canvas id="overlay"></canvas>
+                <div class="pixelBorder" aria-hidden="true"></div>
+              </div>
+
+              <div class="statusLine" id="detectedLine">
+                Waiting for camera...
+              </div>
+              <div class="subReason" id="reasonLine">
+                Reasoning: Visual match found in E-Waste Database.
+              </div>
+
+              <div class="controls">
+                <button class="btn btnTeal btnBig hidden" id="depositBtn" type="button">
+                  DEPOSIT
+                </button>
+                <button class="btn btnGhost" id="backBtn" type="button">BACK</button>
+              </div>
+
+              <div class="hint" id="visionHint">
+                If you haven't set Roboflow keys yet, we’ll run in Simulation Mode.
+              </div>
+            </div>
+          </div>
+
+          <!-- Success & QR Code -->
+          <div class="card hidden" id="successCard">
+            <div style="text-align: center; padding: 20px;">
+              <div class="statusLine" style="font-size: 16px; color: var(--leaf); margin-bottom: 20px;">
+                🎉 DEPOSIT SUCCESSFUL! 🎉
+              </div>
+              <div class="statusLine" style="font-size: 14px; margin-bottom: 6px; color: var(--ink);" id="detectedItemLine">
+                Detected: —
+              </div>
+              <div class="statusLine" style="font-size: 14px; margin-bottom: 10px;" id="pointsEarned">
+                Points Earned: 0
+              </div>
+              <div class="statusLine" style="font-size: 12px; margin-bottom: 30px;" id="totalPoints">
+                Total Points: 0
+              </div>
+              
+              <div style="margin: 30px 0;">
+                <div class="subReason" style="margin-bottom: 15px;">Scan QR code to add points to your app:</div>
+                <div id="qrCodeContainer" style="display: inline-block; padding: 20px; background: #fff; border: calc(var(--pixel) * 2) solid var(--border); border-radius: 18px;">
+                  <canvas id="transactionQR"></canvas>
+                </div>
+              </div>
+
+              <div class="controls">
+                <button class="btn btnPrimary btnBig" id="doneBtn" type="button">
+                  DONE
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div class="phasePill">
+            <span class="pillIcon"></span>
+            <span id="phaseLabel">PHASE 1: HANDSHAKE</span>
+          </div>
+          <div id="sysStatus">STATUS: READY</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+    <script>
+      // -----------------------------
+      // TensorFlow.js COCO-SSD Configuration
+      // -----------------------------
+      // Using TensorFlow.js COCO-SSD - runs entirely in browser, NO API KEY NEEDED!
+      // All items commonly binned: e-waste, recyclables, containers, small appliances, etc.
+      let cocoModel = null;
+      const TARGET_CLASSES = [
+        // E-waste & devices
+        "cell phone", "laptop", "mouse", "keyboard", "remote", "tv",
+        "clock", "hair drier", "toaster", "oven", "microwave",
+        // Bottles, cups, containers
+        "bottle", "wine glass", "cup", "bowl",
+        // Kitchen & recyclables
+        "fork", "knife", "spoon",
+        // Paper, plastic, misc
+        "book", "scissors", "toothbrush", "vase", "teddy bear",
+        // Bags & cases (discarded)
+        "backpack", "handbag", "suitcase"
+      ];
+
+      // -----------------------------
+      // State
+      // -----------------------------
+      let currentUserId = null;
+      let qrScanner = null;
+      let stream = null;
+      let detectLoopRunning = false;
+      let lastBest = null; // {class, confidence, bbox}
+      let userPoints = 0;
+      let currentTransaction = null;
+      // Stable detection: same class for N frames before "fixing" answer
+      let sameClassCount = 0;
+      let lastClass = null;
+      let autoDepositScheduled = false; // only auto-deposit once when stable
+      const STABLE_FRAMES = 6;       // require 6 consistent detections
+      const MIN_CONFIDENCE = 0.62;   // higher = more accurate
+      const AUTO_DEPOSIT_DELAY_MS = 500; // brief pause so user sees "Fixed" then auto-deposit
+
+      // -----------------------------
+      // DOM
+      // -----------------------------
+      const mascotEl = document.getElementById("mascot");
+      const bubbleTextEl = document.getElementById("bubbleText");
+      const phaseLabelEl = document.getElementById("phaseLabel");
+      const sysStatusEl = document.getElementById("sysStatus");
+      const userMetaEl = document.getElementById("userMeta");
+      const clockEl = document.getElementById("clock");
+
+      const identifyCardEl = document.getElementById("identifyCard");
+      const phase2El = document.getElementById("phase2");
+
+      const identifyBtn = document.getElementById("identifyBtn");
+      const backBtn = document.getElementById("backBtn");
+      const depositBtn = document.getElementById("depositBtn");
+
+      const detectedLineEl = document.getElementById("detectedLine");
+      const reasonLineEl = document.getElementById("reasonLine");
+      const videoEl = document.getElementById("video");
+      const overlay = document.getElementById("overlay");
+      const ctx = overlay.getContext("2d");
+      const confettiLayer = document.getElementById("confettiLayer");
+      
+      const successCardEl = document.getElementById("successCard");
+      const detectedItemLineEl = document.getElementById("detectedItemLine");
+      const pointsEarnedEl = document.getElementById("pointsEarned");
+      const totalPointsEl = document.getElementById("totalPoints");
+      const transactionQREl = document.getElementById("transactionQR");
+      const doneBtn = document.getElementById("doneBtn");
+
+      // -----------------------------
+      // Utilities
+      // -----------------------------
+      function setPhaseLabel(text) {
+        phaseLabelEl.textContent = text;
+      }
+
+      function setStatus(text) {
+        sysStatusEl.textContent = "STATUS: " + text;
+      }
+
+      function setBubble(text) {
+        bubbleTextEl.textContent = text;
+      }
+
+      function mascotJump() {
+        mascotEl.classList.remove("jump");
+        void mascotEl.offsetWidth;
+        mascotEl.classList.add("jump");
+      }
+
+      function mascotToCorner() {
+        mascotEl.classList.remove("centerAgain");
+        mascotEl.classList.add("corner");
+      }
+
+      function mascotToCenter() {
+        mascotEl.classList.remove("corner");
+        mascotEl.classList.add("centerAgain");
+      }
+
+      function nowIso() {
+        return new Date().toISOString();
+      }
+
+      function updateClock() {
+        const d = new Date();
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        clockEl.textContent = `${hh}:${mm}`;
+      }
+
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      // -----------------------------
+      // Identify (TensorFlow.js COCO-SSD)
+      // -----------------------------
+      identifyBtn.addEventListener("click", async () => {
+        identifyCardEl.classList.add("hidden");
+        phase2El.classList.remove("hidden");
+
+        setPhaseLabel("IDENTIFY");
+        setStatus("OPENING CAMERA");
+        mascotToCorner();
+        setBubble("Scanning... hold item steady!");
+
+        await openCamera();
+        await loadCOCOModel();
+        if (cocoModel) {
+          startCOCODetection();
+        } else {
+          detectedLineEl.textContent = "⚠️ Failed to load AI model";
+          detectedLineEl.style.color = "#ff0000";
+          reasonLineEl.textContent = "Check console for errors";
+        }
+      });
+
+      backBtn.addEventListener("click", async () => {
+        await cleanupVision();
+        phase2El.classList.add("hidden");
+
+        mascotToCenter();
+        mascotJump();
+
+        setBubble("What do you wanna put?");
+        setStatus("READY TO IDENTIFY");
+        setPhaseLabel("IDENTIFY");
+        identifyCardEl.classList.remove("hidden");
+      });
+
+      async function openCamera() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment", width: { ideal: 720 }, height: { ideal: 960 } },
+            audio: false,
+          });
+          videoEl.srcObject = stream;
+          await videoEl.play();
+          setStatus("CAMERA LIVE");
+          detectedLineEl.textContent = "Analyzing... point camera at item.";
+          syncOverlaySize();
+        } catch (err) {
+          console.error("Camera permission denied:", err);
+          setStatus("CAMERA BLOCKED");
+          detectedLineEl.textContent = "CAMERA NOT FOUND! CHECK PERMISSIONS.";
+          detectedLineEl.style.color = "#ff0000";
+          reasonLineEl.textContent = "";
+        }
+      }
+
+      function syncOverlaySize() {
+        // Match canvas internal resolution to video’s rendered size for crisp pixel lines
+        const rect = videoEl.getBoundingClientRect();
+        overlay.width = Math.max(1, Math.floor(rect.width));
+        overlay.height = Math.max(1, Math.floor(rect.height));
+      }
+
+      window.addEventListener("resize", () => {
+        if (!phase2El.classList.contains("hidden")) syncOverlaySize();
+      });
+
+      // Load TensorFlow.js COCO-SSD model
+      async function loadCOCOModel() {
+        if (!window.cocoSsd) {
+          console.error("COCO-SSD library not loaded");
+          setStatus("MODEL LIBRARY NOT LOADED");
+          detectedLineEl.textContent = "TensorFlow.js COCO-SSD failed to load";
+          detectedLineEl.style.color = "#ff0000";
+          return;
+        }
+
+        try {
+          setStatus("LOADING MODEL");
+          detectedLineEl.textContent = "⏳ Loading AI model...";
+          reasonLineEl.textContent = "Initializing TensorFlow.js COCO-SSD...";
+          
+          console.log("🔧 Loading COCO-SSD model...");
+          cocoModel = await cocoSsd.load();
+          
+          setStatus("MODEL READY");
+          detectedLineEl.textContent = "✅ AI Vision Ready! Point camera at item.";
+          detectedLineEl.style.color = "#1a1a1a";
+          reasonLineEl.textContent = "Scanning for recyclable items...";
+          console.log("✅ COCO-SSD model loaded successfully");
+        } catch (err) {
+          console.error("❌ COCO-SSD load failed:", err);
+          setStatus("MODEL FAILED");
+          detectedLineEl.textContent = "❌ MODEL FAILED: " + err.message;
+          detectedLineEl.style.color = "#ff0000";
+          reasonLineEl.textContent = "Check console for details";
+          cocoModel = null;
+        }
+      }
+
+      // Start real-time detection with COCO-SSD
+      function startCOCODetection() {
+        if (!cocoModel) {
+          setStatus("MODEL NOT LOADED");
+          detectedLineEl.textContent = "Model not loaded. Check console for errors.";
+          detectedLineEl.style.color = "#ff0000";
+          return;
+        }
+
+        detectLoopRunning = true;
+        autoDepositScheduled = false;
+        depositBtn.classList.add("hidden");
+        lastBest = null;
+        sameClassCount = 0;
+        lastClass = null;
+        detectedLineEl.textContent = "🔍 Scanning... hold item steady.";
+        detectedLineEl.style.color = "#1a1a1a";
+        reasonLineEl.textContent = "AI Vision active - analyzing frame by frame...";
+        reasonLineEl.style.color = "#1a1a1a";
+        reasonLineEl.style.fontSize = "14px";
+        setStatus("SCANNING");
+
+        let frameCount = 0;
+        let lastDetectionTime = 0;
+        const DETECTION_INTERVAL = 200; // Detect every 200ms (5 FPS)
+
+        const loop = async () => {
+          if (!detectLoopRunning) return;
+          if (!videoEl.videoWidth || !videoEl.videoHeight) {
+            requestAnimationFrame(loop);
+            return;
+          }
+
+          frameCount++;
+          const now = Date.now();
+
+          // Throttle detection to avoid overloading
+          if (now - lastDetectionTime < DETECTION_INTERVAL) {
+            requestAnimationFrame(loop);
+            return;
+          }
+
+          lastDetectionTime = now;
+
+          try {
+            // Run COCO-SSD detection on video frame
+            const predictions = await cocoModel.detect(videoEl);
+            
+            // Filter for target classes and convert format
+            const filteredPredictions = predictions
+              .filter(p => TARGET_CLASSES.includes(p.class.toLowerCase()))
+              .map(p => ({
+                class: p.class,
+                confidence: p.score,
+                bbox: {
+                  x: p.bbox[0], // x coordinate (top-left)
+                  y: p.bbox[1], // y coordinate (top-left)
+                  width: p.bbox[2], // width
+                  height: p.bbox[3] // height
+                }
+              }));
+            
+            if (filteredPredictions.length > 0 && frameCount === 1) {
+              console.log("✅ Detection working! Found", filteredPredictions.length, "items:", filteredPredictions);
+            }
+            
+            renderPredictions(filteredPredictions);
+          } catch (err) {
+            console.error("Detection error:", err);
+            
+            if (frameCount === 1 || frameCount % 10 === 0) {
+              const errorMsg = err.message || "Detection failed";
+              detectedLineEl.textContent = "⚠️ " + errorMsg;
+              detectedLineEl.style.color = "#ff0000";
+              reasonLineEl.textContent = "Check browser console (F12) for details";
+              reasonLineEl.style.color = "#ff0000";
+            }
+          }
+
+          requestAnimationFrame(loop);
+        };
+
+        requestAnimationFrame(loop);
+      }
+
+      function pickBest(predictions) {
+        if (!predictions || predictions.length === 0) {
+          return null;
+        }
+
+        // COCO-SSD returns: [{ class, confidence, bbox: [x, y, width, height] }, ...]
+        // bbox is already in [x, y, width, height] format (top-left corner)
+        let best = null;
+        for (const p of predictions) {
+          const conf = Number(p.confidence || 0);
+          const cls = String(p.class || "").trim();
+          
+          if (!cls || conf < MIN_CONFIDENCE) continue;
+          
+          if (!best || conf > best.confidence) {
+            // COCO-SSD bbox format: { bbox: [x, y, width, height] }
+            let bbox = null;
+            
+            if (p.bbox && Array.isArray(p.bbox) && p.bbox.length >= 4) {
+              bbox = {
+                x: p.bbox[0],
+                y: p.bbox[1],
+                width: p.bbox[2],
+                height: p.bbox[3]
+              };
+            } else if (typeof p.bbox === "object" && p.bbox.x !== undefined) {
+              bbox = p.bbox;
+            }
+            
+            if (bbox && bbox.width > 0 && bbox.height > 0) {
+              best = {
+                class: cls,
+                confidence: conf,
+                bbox: bbox
+              };
+            }
+          }
+        }
+        
+        return best;
+      }
+
+      function renderPredictions(predictions) {
+        syncOverlaySize();
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+        const best = pickBest(predictions);
+        lastBest = best;
+
+        if (!best || !best.bbox) {
+          sameClassCount = 0;
+          lastClass = null;
+          detectedLineEl.textContent = "Scanning... no item detected yet";
+          detectedLineEl.style.color = "#1a1a1a";
+          depositBtn.classList.add("hidden");
+          return;
+        }
+
+        const label = best.class;
+        const confPct = Math.round(best.confidence * 100);
+
+        // Require same class for several frames before "fixing" answer (more accurate)
+        if (label === lastClass) {
+          sameClassCount++;
+        } else {
+          sameClassCount = 1;
+          lastClass = label;
+        }
+
+        const isStable = sameClassCount >= STABLE_FRAMES;
+
+        // Scale bbox from model coordinates to overlay canvas coordinates
+        const videoWidth = videoEl.videoWidth || 640;
+        const videoHeight = videoEl.videoHeight || 480;
+        const scaleX = overlay.width / videoWidth;
+        const scaleY = overlay.height / videoHeight;
+
+        const scaledBbox = {
+          x: best.bbox.x * scaleX,
+          y: best.bbox.y * scaleY,
+          width: best.bbox.width * scaleX,
+          height: best.bbox.height * scaleY
+        };
+
+        detectedLineEl.textContent = isStable ? `Fixed: ${label}` : `Detected: ${label} (${sameClassCount}/${STABLE_FRAMES})`;
+        detectedLineEl.style.color = isStable ? "var(--leaf)" : "#1a1a1a";
+        reasonLineEl.textContent = `Confidence: ${confPct}%${isStable ? " — Ready to deposit" : ""}`;
+
+        drawPixelRect(scaledBbox, isStable ? "#2fd06f" : "#00ff00", label, confPct);
+
+        if (isStable) {
+          setStatus(`FIXED: ${label}`);
+          // Auto-deposit when we first become stable (only once)
+          if (!autoDepositScheduled) {
+            autoDepositScheduled = true;
+            detectLoopRunning = false;
+            detectedLineEl.textContent = `Depositing ${label}...`;
+            reasonLineEl.textContent = "Deposit in progress...";
+            setTimeout(() => doDeposit(), AUTO_DEPOSIT_DELAY_MS);
+          }
+        } else {
+          depositBtn.classList.add("hidden");
+          setStatus(`SCANNING: ${label}`);
+        }
+      }
+
+      function drawPixelRect(bbox, color, label, confPct) {
+        // bbox: {x, y, width, height} in overlay coords
+        const x = Math.max(0, Math.floor(bbox.x));
+        const y = Math.max(0, Math.floor(bbox.y));
+        const w = Math.max(1, Math.floor(bbox.width));
+        const h = Math.max(1, Math.floor(bbox.height));
+
+        // Green pixel-art border (4px solid #00ff00)
+        ctx.save();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = color;
+        ctx.strokeRect(x, y, w, h);
+
+        // Label chip (pixel style)
+        const text = `${label} ${confPct}%`;
+        ctx.font = "12px 'Press Start 2P'";
+        const tw = ctx.measureText(text).width;
+        const chipW = Math.ceil(tw + 18);
+        const chipH = 22;
+        const chipX = x;
+        const chipY = Math.max(0, y - chipH - 6);
+        ctx.fillStyle = "rgba(255,255,255,0.96)";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.fillRect(chipX, chipY, chipW, chipH);
+        ctx.strokeRect(chipX, chipY, chipW, chipH);
+        ctx.fillStyle = "#1a1a1a";
+        ctx.fillText(text, chipX + 10, chipY + 15);
+        ctx.restore();
+      }
+
+
+      // -----------------------------
+      // Deposit (runs automatically when choice is fixed, or on button click)
+      // -----------------------------
+      async function doDeposit() {
+        if (!lastBest) return;
+
+        const item = lastBest.class;
+        const confidence = lastBest.confidence ?? 0;
+        const points = 50;
+
+        detectLoopRunning = false;
+
+        const transactionId = "txn_" + Date.now() + "_" + Date.now().toString(36).slice(-7);
+        currentTransaction = {
+          transactionId,
+          userId: currentUserId || "guest",
+          item,
+          confidence: Math.round(confidence * 100) / 100,
+          pointsAdded: points,
+          timestamp: nowIso(),
+        };
+
+        userPoints += points;
+
+        console.log("[MOCK DB] Transaction:", JSON.stringify(currentTransaction, null, 2));
+        console.log("[MOCK DB] User Points Updated:", {
+          userId: currentUserId || "guest",
+          pointsAdded: points,
+          newTotal: userPoints,
+        });
+
+        phase2El.classList.add("hidden");
+        successCardEl.classList.remove("hidden");
+
+        const itemLabel = item.replace(/\b\w/g, c => c.toUpperCase()); // e.g. "cell phone" -> "Cell Phone"
+        detectedItemLineEl.textContent = `Detected: ${itemLabel}`;
+        pointsEarnedEl.textContent = `+${points} points for ${itemLabel}`;
+        totalPointsEl.textContent = `Total Points: ${userPoints}`;
+
+        setPhaseLabel("SUCCESS");
+        setStatus("DEPOSIT COMPLETE");
+        makeConfetti();
+
+        generateTransactionQR(currentTransaction);
+
+        await cleanupVision(false);
+        mascotToCenter();
+        mascotJump();
+        setBubble(`${itemLabel} deposited! +${points} POINTS!`);
+      }
+
+      depositBtn.addEventListener("click", () => doDeposit());
+
+      doneBtn.addEventListener("click", () => {
+        resetToPhase1();
+      });
+
+      // -----------------------------
+      // Generate Transaction QR Code
+      // -----------------------------
+      function generateTransactionQR(transaction) {
+        // Create QR data payload (JSON string that app can scan)
+        const qrData = JSON.stringify({
+          type: "deposit_confirmation",
+          transactionId: transaction.transactionId,
+          userId: transaction.userId,
+          item: transaction.item,
+          points: transaction.pointsAdded,
+          timestamp: transaction.timestamp,
+          signature: btoa(JSON.stringify(transaction)).slice(0, 16), // Simple signature
+        });
+
+        // Generate QR code using qrcode library
+        if (window.QRCode) {
+          QRCode.toCanvas(transactionQREl, qrData, {
+            width: 280,
+            margin: 2,
+            color: {
+              dark: "#1a1a1a",
+              light: "#ffffff",
+            },
+          }, (error) => {
+            if (error) {
+              console.error("QR generation error:", error);
+              transactionQREl.getContext("2d").fillText("QR Error", 10, 50);
+            }
+          });
+        } else {
+          console.warn("QRCode library not loaded");
+        }
+      }
+
+      function makeConfetti() {
+        const colors = ["#ff4fa3", "#18c7b8", "#37a6ff", "#ffd33d", "#2fd06f"];
+        const count = 40;
+        const rect = confettiLayer.getBoundingClientRect();
+        for (let i = 0; i < count; i++) {
+          const c = document.createElement("div");
+          c.className = "confetti";
+          const left = (i * 50) % rect.width;
+          const delay = i * 50;
+          c.style.left = left + "px";
+          c.style.top = "-20px";
+          c.style.background = colors[i % colors.length];
+          c.style.animationDelay = delay + "ms";
+          confettiLayer.appendChild(c);
+          setTimeout(() => c.remove(), 1600);
+        }
+      }
+
+      async function cleanupVision(stopStream = true) {
+        detectLoopRunning = false;
+        depositBtn.classList.add("hidden");
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        lastBest = null;
+
+        if (stopStream && stream) {
+          for (const t of stream.getTracks()) t.stop();
+          stream = null;
+          videoEl.srcObject = null;
+        }
+      }
+
+      function resetToPhase1() {
+        cleanupVision(true);
+        currentTransaction = null;
+
+        phase2El.classList.add("hidden");
+        successCardEl.classList.add("hidden");
+        identifyCardEl.classList.remove("hidden");
+
+        mascotEl.classList.remove("corner", "centerAgain");
+        void mascotEl.offsetWidth;
+        mascotEl.classList.add("enter");
+
+        setBubble("What do you wanna put?");
+        setStatus("READY");
+        setPhaseLabel("IDENTIFY");
+      }
+
+      // -----------------------------
+      // Boot
+      // -----------------------------
+      window.addEventListener("load", () => {
+        currentUserId = "guest";
+        userMetaEl.textContent = "USER: GUEST";
+        mascotEl.classList.add("enter");
+        setBubble("What do you wanna put?");
+        setStatus("READY");
+        setPhaseLabel("IDENTIFY");
+      });
+
+      window.addEventListener("beforeunload", () => {
+        cleanupVision(true);
+      });
+    </script>
+  </body>
+</html>
