@@ -1,0 +1,302 @@
+[
+  {
+    "id": "mh-1",
+    "name": "Mumbai E-Tech Hub",
+    "lat": 19.076,
+    "lng": 72.8777,
+    "address": "Andheri East, Mumbai, MH",
+    "acceptedItems": ["phone", "battery", "charger"],
+    "fillLevel": 35,
+    "status": "operational"
+  },
+  {
+    "id": "mh-2",
+    "name": "BKC Green Bin",
+    "lat": 19.06,
+    "lng": 72.8697,
+    "address": "BKC, Mumbai, MH",
+    "acceptedItems": ["laptop", "hard-drive"],
+    "fillLevel": 55,
+    "status": "operational"
+  },
+  {
+    "id": "mh-3",
+    "name": "Navi Mumbai Recycle Point",
+    "lat": 19.033,
+    "lng": 73.0297,
+    "address": "Vashi, Navi Mumbai, MH",
+    "acceptedItems": ["phone", "tablet"],
+    "fillLevel": 80,
+    "status": "full"
+  },
+  {
+    "id": "mh-4",
+    "name": "Pune IT Park Bin",
+    "lat": 18.5204,
+    "lng": 73.8567,
+    "address": "Hinjewadi, Pune, MH",
+    "acceptedItems": ["battery", "cable", "charger"],
+    "fillLevel": 20,
+    "status": "operational"
+  },
+  {
+    "id": "mh-5",
+    "name": "Nagpur Eco Drop",
+    "lat": 21.1458,
+    "lng": 79.0882,
+    "address": "Sitabuldi, Nagpur, MH",
+    "acceptedItems": ["phone", "watch"],
+    "fillLevel": 40,
+    "status": "operational"
+  },
+  {
+    "id": "mh-6",
+    "name": "Nashik Digital Bin",
+    "lat": 19.9975,
+    "lng": 73.7898,
+    "address": "College Road, Nashik, MH",
+    "acceptedItems": ["laptop", "charger"],
+    "fillLevel": 60,
+    "status": "operational"
+  },
+  {
+    "id": "mh-7",
+    "name": "Aurangabad E-Waste Hub",
+    "lat": 19.8762,
+    "lng": 75.3433,
+    "address": "CIDCO, Aurangabad, MH",
+    "acceptedItems": ["tablet", "battery"],
+    "fillLevel": 25,
+    "status": "operational"
+  },
+  {
+    "id": "mh-8",
+    "name": "Thane Smart Bin",
+    "lat": 19.2183,
+    "lng": 72.9781,
+    "address": "Ghodbunder Rd, Thane, MH",
+    "acceptedItems": ["phone", "headphones"],
+    "fillLevel": 70,
+    "status": "operational"
+  },
+  {
+    "id": "mh-9",
+    "name": "Kolhapur E-Recycle",
+    "lat": 16.705,
+    "lng": 74.2433,
+    "address": "Shivaji Nagar, Kolhapur, MH",
+    "acceptedItems": ["cable", "charger"],
+    "fillLevel": 15,
+    "status": "operational"
+  },
+  {
+    "id": "mh-10",
+    "name": "Solapur Green Tech Bin",
+    "lat": 17.6599,
+    "lng": 75.9064,
+    "address": "Station Rd, Solapur, MH",
+    "acceptedItems": ["battery", "watch"],
+    "fillLevel": 90,
+    "status": "full"
+  },
+  {
+    "id": "ka-1",
+    "name": "Bangalore Central Bin",
+    "lat": 12.9716,
+    "lng": 77.5946,
+    "address": "MG Road, Bengaluru, KA",
+    "acceptedItems": ["phone", "laptop"],
+    "fillLevel": 30,
+    "status": "operational"
+  },
+  {
+    "id": "ka-2",
+    "name": "Electronic City E-Hub",
+    "lat": 12.8399,
+    "lng": 77.677,
+    "address": "Electronic City, KA",
+    "acceptedItems": ["hard-drive", "cable"],
+    "fillLevel": 45,
+    "status": "operational"
+  },
+  {
+    "id": "ka-3",
+    "name": "Whitefield Smart Bin",
+    "lat": 12.9698,
+    "lng": 77.75,
+    "address": "Whitefield, Bengaluru, KA",
+    "acceptedItems": ["tablet", "charger"],
+    "fillLevel": 60,
+    "status": "operational"
+  },
+  {
+    "id": "ka-4",
+    "name": "Mysore Digital Drop",
+    "lat": 12.2958,
+    "lng": 76.6394,
+    "address": "VV Mohalla, Mysuru, KA",
+    "acceptedItems": ["phone", "battery"],
+    "fillLevel": 20,
+    "status": "operational"
+  },
+  {
+    "id": "ka-5",
+    "name": "Hubli Eco Bin",
+    "lat": 15.3647,
+    "lng": 75.124,
+    "address": "Keshwapur, Hubli, KA",
+    "acceptedItems": ["laptop", "watch"],
+    "fillLevel": 50,
+    "status": "operational"
+  },
+  {
+    "id": "ka-6",
+    "name": "Mangalore E-Waste Point",
+    "lat": 12.9141,
+    "lng": 74.856,
+    "address": "Hampankatta, Mangalore, KA",
+    "acceptedItems": ["phone", "headphones"],
+    "fillLevel": 65,
+    "status": "operational"
+  },
+  {
+    "id": "ka-7",
+    "name": "Belgaum Green Tech",
+    "lat": 15.8497,
+    "lng": 74.4977,
+    "address": "Tilakwadi, Belgaum, KA",
+    "acceptedItems": ["battery", "charger"],
+    "fillLevel": 10,
+    "status": "operational"
+  },
+  {
+    "id": "ka-8",
+    "name": "Davangere E-Bin",
+    "lat": 14.4644,
+    "lng": 75.9218,
+    "address": "PJ Extension, Davangere, KA",
+    "acceptedItems": ["tablet", "cable"],
+    "fillLevel": 75,
+    "status": "operational"
+  },
+  {
+    "id": "ka-9",
+    "name": "Udupi Smart Recycle",
+    "lat": 13.3409,
+    "lng": 74.7421,
+    "address": "Manipal Rd, Udupi, KA",
+    "acceptedItems": ["phone", "watch"],
+    "fillLevel": 40,
+    "status": "operational"
+  },
+  {
+    "id": "ka-10",
+    "name": "Tumkur E-Drop",
+    "lat": 13.3392,
+    "lng": 77.113,
+    "address": "BH Road, Tumkur, KA",
+    "acceptedItems": ["laptop", "battery"],
+    "fillLevel": 85,
+    "status": "full"
+  },
+  {
+    "id": "dl-1",
+    "name": "Connaught Place Green Bin",
+    "lat": 28.6139,
+    "lng": 77.209,
+    "address": "CP, New Delhi, DL",
+    "acceptedItems": ["phone", "charger"],
+    "fillLevel": 25,
+    "status": "operational"
+  },
+  {
+    "id": "dl-2",
+    "name": "Dwarka E-Waste Hub",
+    "lat": 28.5921,
+    "lng": 77.046,
+    "address": "Sector 10, Dwarka, DL",
+    "acceptedItems": ["laptop", "battery"],
+    "fillLevel": 55,
+    "status": "operational"
+  },
+  {
+    "id": "dl-3",
+    "name": "Rohini Smart Bin",
+    "lat": 28.749,
+    "lng": 77.0565,
+    "address": "Sector 3, Rohini, DL",
+    "acceptedItems": ["tablet", "cable"],
+    "fillLevel": 40,
+    "status": "operational"
+  },
+  {
+    "id": "dl-4",
+    "name": "Saket Digital Drop",
+    "lat": 28.5244,
+    "lng": 77.2066,
+    "address": "Saket, New Delhi, DL",
+    "acceptedItems": ["phone", "watch"],
+    "fillLevel": 15,
+    "status": "operational"
+  },
+  {
+    "id": "dl-5",
+    "name": "Karol Bagh E-Bin",
+    "lat": 28.6512,
+    "lng": 77.19,
+    "address": "Karol Bagh, DL",
+    "acceptedItems": ["battery", "headphones"],
+    "fillLevel": 70,
+    "status": "operational"
+  },
+  {
+    "id": "dl-6",
+    "name": "Lajpat Nagar Eco Point",
+    "lat": 28.5672,
+    "lng": 77.2436,
+    "address": "Lajpat Nagar, DL",
+    "acceptedItems": ["charger", "cable"],
+    "fillLevel": 60,
+    "status": "operational"
+  },
+  {
+    "id": "dl-7",
+    "name": "Pitampura Green Tech",
+    "lat": 28.7033,
+    "lng": 77.1322,
+    "address": "Pitampura, DL",
+    "acceptedItems": ["phone", "tablet"],
+    "fillLevel": 35,
+    "status": "operational"
+  },
+  {
+    "id": "dl-8",
+    "name": "Janakpuri E-Recycle",
+    "lat": 28.6219,
+    "lng": 77.0878,
+    "address": "Janakpuri, DL",
+    "acceptedItems": ["laptop", "hard-drive"],
+    "fillLevel": 90,
+    "status": "full"
+  },
+  {
+    "id": "dl-9",
+    "name": "Vasant Kunj Smart Bin",
+    "lat": 28.5273,
+    "lng": 77.1494,
+    "address": "Vasant Kunj, DL",
+    "acceptedItems": ["battery", "watch"],
+    "fillLevel": 20,
+    "status": "operational"
+  },
+  {
+    "id": "dl-10",
+    "name": "Mayur Vihar Digital Hub",
+    "lat": 28.6046,
+    "lng": 77.2893,
+    "address": "Mayur Vihar, DL",
+    "acceptedItems": ["phone", "charger"],
+    "fillLevel": 45,
+    "status": "operational"
+  }
+]

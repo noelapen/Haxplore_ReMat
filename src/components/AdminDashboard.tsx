@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BinMonitoring } from './admin/BinMonitoring';
 import { Analytics } from './admin/Analytics';
 import { AlertsPanel } from './admin/AlertsPanel';
@@ -17,12 +17,39 @@ import {
   HelpCircle,
 } from 'lucide-react';
 
+// Leaflet Imports
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix for default Leaflet marker icons in React
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
 interface AdminDashboardProps {
   user: any;
   onLogout: () => void;
 }
 
 type ActiveView = 'overview' | 'bins' | 'analytics' | 'alerts' | 'users';
+
+interface Bin {
+  _id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  address: string;
+  acceptedItems: string[];
+  fillLevel: number;
+  status: 'operational' | 'full' | 'maintenance';
+}
 
 export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const [activeView, setActiveView] = useState<ActiveView>('overview');
@@ -46,11 +73,38 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
     setShowTutorial(true);
   };
 
+  // BINS STATE FROM DATABASE
+  const [bins, setBins] = useState<Bin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // FETCH DATA FROM BACKEND API
+  useEffect(() => {
+    async function fetchBins() {
+      try {
+        setLoading(true);
+
+        const res = await fetch("http://localhost:5000/api/bins");
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch bins");
+        }
+
+        const data = await res.json();
+        setBins(data);
+      } catch (error) {
+        console.error("Error fetching bins:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchBins();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        {/* Logo */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -63,7 +117,6 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 p-4">
           <div className="space-y-2">
             <button
@@ -133,7 +186,6 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
           </div>
         </nav>
 
-        {/* Admin Profile */}
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -142,7 +194,9 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-900 truncate">{user.name}</div>
+              <div className="font-medium text-gray-900 truncate">
+                {user.name}
+              </div>
               <div className="text-xs text-gray-500">Administrator</div>
             </div>
           </div>
@@ -156,9 +210,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        {/* Top Bar */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
           <div className="px-8 py-4 flex items-center justify-between">
             <div>
@@ -170,7 +222,8 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                 {activeView === 'users' && 'User Management'}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                {activeView === 'overview' && 'Real-time system overview and key metrics'}
+                {activeView === 'overview' &&
+                  'Real-time system overview and key metrics'}
                 {activeView === 'bins' && 'Monitor all smart bins in real-time'}
                 {activeView === 'analytics' && 'Track performance and trends'}
                 {activeView === 'alerts' && 'Manage system notifications'}
@@ -198,11 +251,21 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
 
         {/* Content Area */}
         <div className="p-8">
-          {activeView === 'overview' && <OverviewDashboard />}
-          {activeView === 'bins' && <BinMonitoring />}
-          {activeView === 'analytics' && <Analytics />}
-          {activeView === 'alerts' && <AlertsPanel />}
-          {activeView === 'users' && <UserManagement />}
+          {loading && (
+            <div className="text-center text-gray-600 font-medium">
+              Loading bins from database...
+            </div>
+          )}
+
+          {!loading && (
+            <>
+              {activeView === 'overview' && <OverviewDashboard bins={bins} />}
+              {activeView === 'bins' && <BinMonitoring />}
+              {activeView === 'analytics' && <Analytics />}
+              {activeView === 'alerts' && <AlertsPanel />}
+              {activeView === 'users' && <UserManagement />}
+            </>
+          )}
         </div>
       </main>
 
@@ -224,11 +287,65 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   );
 }
 
-// Overview Dashboard Component
-function OverviewDashboard() {
+function OverviewDashboard({ bins }: { bins: Bin[] }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMap = useRef<L.Map | null>(null);
+  const markersLayer = useRef<L.LayerGroup | null>(null);
+
+  useEffect(() => {
+    if (mapRef.current && !leafletMap.current) {
+      leafletMap.current = L.map(mapRef.current).setView([20.5937, 78.9629], 5);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+      }).addTo(leafletMap.current);
+
+      markersLayer.current = L.layerGroup().addTo(leafletMap.current);
+
+      setTimeout(() => {
+        leafletMap.current?.invalidateSize();
+      }, 200);
+    }
+
+    if (markersLayer.current) {
+      markersLayer.current.clearLayers();
+
+      bins.forEach((bin) => {
+        const color =
+          bin.fillLevel > 80
+            ? '#ef4444'
+            : bin.fillLevel > 50
+            ? '#f59e0b'
+            : '#10b981';
+
+        const customIcon = L.divIcon({
+          className: 'custom-admin-marker',
+          html: `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [14, 14],
+        });
+
+        L.marker([bin.lat, bin.lng], { icon: customIcon })
+          .addTo(markersLayer.current!)
+          .bindPopup(`
+            <div style="font-family: sans-serif; padding: 2px;">
+              <div style="font-weight: bold; font-size: 14px;">${bin.name}</div>
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">${bin.address}</div>
+              <div style="font-weight: bold; color: ${color}">Fill Level: ${bin.fillLevel}%</div>
+            </div>
+          `);
+      });
+    }
+
+    return () => {
+      if (leafletMap.current) {
+        leafletMap.current.remove();
+        leafletMap.current = null;
+      }
+    };
+  }, [bins]);
+
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -239,7 +356,9 @@ function OverviewDashboard() {
               +2 this week
             </span>
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">48</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">
+            {bins.length}
+          </div>
           <div className="text-sm text-gray-600">Total Smart Bins</div>
         </div>
 
@@ -283,50 +402,46 @@ function OverviewDashboard() {
         </div>
       </div>
 
-      {/* Map and Recent Activity */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Geographic Overview */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Geographic Overview</h3>
-          <div className="relative h-96 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <MapPin className="w-16 h-16 text-blue-600 mx-auto mb-3" />
-              <h4 className="font-semibold text-gray-900 mb-2">Interactive Map</h4>
-              <p className="text-sm text-gray-600">All 48 bins shown on map</p>
-            </div>
-            {/* Mock bin markers */}
-            <div className="absolute top-1/4 left-1/4 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <div className="absolute top-1/3 left-2/3 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <div className="absolute top-2/3 left-1/2 w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
-            <div className="absolute top-1/2 left-1/3 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <div className="absolute top-3/4 left-3/4 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-          </div>
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p--6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 text-center underline decoration-blue-500">
+            Geographic Bin Overview (India)
+          </h3>
+
+          <div
+            ref={mapRef}
+            className="h-96 rounded-lg border border-gray-200 relative z-10 overflow-hidden shadow-inner"
+            style={{ backgroundColor: '#f8fafc' }}
+          />
+
           <div className="mt-4 flex items-center justify-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-gray-600">Operational (42)</span>
+              <span className="text-gray-600">Low Fill</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-              <span className="text-gray-600">Nearly Full (3)</span>
+              <span className="text-gray-600">Nearly Full</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-              <span className="text-gray-600">Full (3)</span>
+              <span className="text-gray-600">Critical / Full</span>
             </div>
           </div>
         </div>
 
-        {/* Recent Activity */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Activity</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-4">
+            Recent Activity
+          </h3>
+
           <div className="space-y-4">
             {[
-              { time: '2 min ago', event: 'Bin #23 reached 95% capacity', type: 'warning' },
+              { time: '2 min ago', event: 'Bin reached 85% capacity', type: 'warning' },
               { time: '15 min ago', event: 'New user registered', type: 'info' },
-              { time: '32 min ago', event: 'Collection completed at Bin #12', type: 'success' },
-              { time: '1 hour ago', event: 'Bin #45 maintenance scheduled', type: 'info' },
-              { time: '2 hours ago', event: 'High usage detected at Bin #8', type: 'warning' },
+              { time: '32 min ago', event: 'Collection completed', type: 'success' },
+              { time: '1 hour ago', event: 'Maintenance scheduled', type: 'info' },
+              { time: '2 hours ago', event: 'High usage detected', type: 'warning' },
             ].map((activity, idx) => (
               <div key={idx} className="flex gap-3">
                 <div
@@ -347,7 +462,6 @@ function OverviewDashboard() {
           </div>
         </div>
       </div>
-
       {/* Quick Stats */}
       <div className="grid md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-6 text-white">
