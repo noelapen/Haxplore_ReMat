@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Mail, Lock, User, Phone } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, User, Phone, Loader2 } from 'lucide-react';
 
 interface AuthPageProps {
   userType: 'user' | 'admin';
@@ -9,6 +9,7 @@ interface AuthPageProps {
 
 export function AuthPage({ userType, onAuthSuccess, onBack }: AuthPageProps) {
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Added loading state
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,37 +18,46 @@ export function AuthPage({ userType, onAuthSuccess, onBack }: AuthPageProps) {
   });
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     // Basic validation
     if (!formData.email || !formData.password) {
       setError('Please fill in all required fields');
+      setIsLoading(false);
       return;
     }
 
-    if (!isLogin && (!formData.name || !formData.phone)) {
-      setError('Please fill in all required fields');
-      return;
+    try {
+      // Determine the API endpoint based on the toggle state
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      
+      // We include userType in the body so the backend knows the role
+      const payload = { ...formData, userType };
+
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Authentication failed');
+      }
+
+      // Success! Pass the user data back to the parent component
+      onAuthSuccess(data);
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    // Mock authentication - in real app, this would call an API
-    const user = {
-      id: Date.now().toString(),
-      name: isLogin ? formData.email.split('@')[0] : formData.name,
-      email: formData.email,
-      phone: formData.phone || '',
-      type: userType,
-      createdAt: new Date().toISOString(),
-      // Initialize user data
-      points: 0,
-      totalRecycled: 0,
-      badges: [],
-      co2Saved: 0,
-    };
-
-    onAuthSuccess(user);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -60,7 +70,6 @@ export function AuthPage({ userType, onAuthSuccess, onBack }: AuthPageProps) {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-${themeColor}-50 via-green-50 to-teal-50 flex flex-col items-center justify-center p-4`}>
-      {/* Back Button */}
       <button
         onClick={onBack}
         className="absolute top-4 left-4 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
@@ -69,7 +78,6 @@ export function AuthPage({ userType, onAuthSuccess, onBack }: AuthPageProps) {
         <span>Back</span>
       </button>
 
-      {/* Auth Card */}
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -90,9 +98,7 @@ export function AuthPage({ userType, onAuthSuccess, onBack }: AuthPageProps) {
           {!isLogin && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -107,9 +113,7 @@ export function AuthPage({ userType, onAuthSuccess, onBack }: AuthPageProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -126,9 +130,7 @@ export function AuthPage({ userType, onAuthSuccess, onBack }: AuthPageProps) {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -143,9 +145,7 @@ export function AuthPage({ userType, onAuthSuccess, onBack }: AuthPageProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -161,18 +161,15 @@ export function AuthPage({ userType, onAuthSuccess, onBack }: AuthPageProps) {
 
           <button
             type="submit"
-            className={`w-full bg-${themeColor}-600 text-white py-3 rounded-lg font-semibold hover:bg-${themeColor}-700 transition-colors shadow-lg hover:shadow-xl`}
-            style={{
-              backgroundColor: isAdmin ? '#2563eb' : '#059669',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = isAdmin ? '#1d4ed8' : '#047857';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = isAdmin ? '#2563eb' : '#059669';
-            }}
+            disabled={isLoading}
+            className={`w-full flex items-center justify-center bg-${themeColor}-600 text-white py-3 rounded-lg font-semibold hover:bg-${themeColor}-700 transition-colors shadow-lg disabled:opacity-70`}
+            style={{ backgroundColor: isAdmin ? '#2563eb' : '#059669' }}
           >
-            {isLogin ? 'Sign In' : 'Create Account'}
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              isLogin ? 'Sign In' : 'Create Account'
+            )}
           </button>
         </form>
 

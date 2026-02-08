@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Camera,
   Upload,
@@ -11,8 +11,6 @@ import {
   TrendingUp,
   Download,
   RefreshCw,
-  Info,
-  MoreHorizontal,
 } from 'lucide-react';
 
 interface WasteDetectionProps {
@@ -32,6 +30,7 @@ interface DetectedItem {
   co2Saved: number;
   condition: string;
   image?: string;
+  createdAt?: string;
 }
 
 const WASTE_ITEMS = [
@@ -44,7 +43,6 @@ const WASTE_ITEMS = [
   { type: 'headphones', name: 'Headphones', baseValue: 10, basePoints: 100, co2: 6 },
   { type: 'watch', name: 'Smart Watch', baseValue: 20, basePoints: 200, co2: 10 },
   { type: 'hard-drive', name: 'Hard Drive', baseValue: 12, basePoints: 120, co2: 8 },
-  { type: 'other', name: 'Other Electronics', baseValue: 6, basePoints: 60, co2: 4 },
 ];
 
 export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProps) {
@@ -54,7 +52,49 @@ export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProp
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [manualOverride, setManualOverride] = useState(false);
-  const [showAIExplainer, setShowAIExplainer] = useState(false);
+
+  const [recentDetections, setRecentDetections] = useState<DetectedItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // NEW: Fetch updated user from DB (so points don't reset after refresh)
+  const fetchUpdatedUser = async () => {
+    if (!user?._id) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/users/${user._id}`);
+      const data = await res.json();
+
+      if (data && data._id) {
+        localStorage.setItem("user", JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error("Error fetching updated user:", error);
+    }
+  };
+
+  const fetchRecentDetections = async () => {
+    if (!user?._id) return;
+
+    setLoadingHistory(true);
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/detections/${user._id}`);
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        setRecentDetections(data);
+      }
+    } catch (error) {
+      console.error("Error fetching recent detections:", error);
+    }
+
+    setLoadingHistory(false);
+  };
+
+  useEffect(() => {
+    fetchRecentDetections();
+    fetchUpdatedUser();
+  }, [user?._id]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -70,7 +110,6 @@ export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProp
     setScanProgress(0);
     setManualOverride(false);
 
-    // Simulate AI scanning process
     const interval = setInterval(() => {
       setScanProgress(prev => {
         if (prev >= 100) {
@@ -84,12 +123,11 @@ export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProp
   };
 
   const performDetection = () => {
-    // Simulate AI detection with random item
     setTimeout(() => {
       const randomItem = WASTE_ITEMS[Math.floor(Math.random() * WASTE_ITEMS.length)];
-      const confidence = 75 + Math.random() * 25; // 75-100%
-      const weight = 0.1 + Math.random() * 2; // 0.1-2.1 kg
-      const conditionFactor = 0.6 + Math.random() * 0.4; // 60-100% condition
+      const confidence = 75 + Math.random() * 25;
+      const weight = 0.1 + Math.random() * 2;
+      const conditionFactor = 0.6 + Math.random() * 0.4;
 
       const detected: DetectedItem = {
         type: randomItem.type,
@@ -108,10 +146,36 @@ export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProp
     }, 500);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (detectedItem) {
+      try {
+        const res = await fetch("http://localhost:5000/api/recycle", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: user?._id,
+            item: detectedItem,
+          }),
+        });
+
+        const data = await res.json();
+
+        // NEW: Update localStorage user immediately with updatedUser from backend
+        if (data?.updatedUser) {
+          localStorage.setItem("user", JSON.stringify(data.updatedUser));
+        }
+
+        // Refresh detections + updated user data
+        await fetchRecentDetections();
+        await fetchUpdatedUser();
+      } catch (error) {
+        console.error("Error saving recycling data:", error);
+      }
+
       onRecyclingComplete(detectedItem);
-      // Show success state briefly then reset
+
       setTimeout(() => {
         resetDetection();
       }, 2000);
@@ -173,7 +237,7 @@ export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProp
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              
+
               {!previewUrl ? (
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -241,112 +305,6 @@ export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProp
                 </div>
               </div>
             </div>
-
-            {/* AI Detection Explainer - Collapsible */}
-            <div className="mt-6">
-              <button
-                onClick={() => setShowAIExplainer(!showAIExplainer)}
-                className="w-full p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 hover:border-purple-300 transition-all flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Info className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <h4 className="font-semibold text-gray-900">How AI Image Detection Works</h4>
-                    <p className="text-sm text-gray-600">
-                      Click to learn more about our AI system
-                    </p>
-                  </div>
-                </div>
-                <div className={`transform transition-transform duration-300 ${showAIExplainer ? 'rotate-180' : ''}`}>
-                  <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </button>
-
-              {/* Collapsible Content */}
-              {showAIExplainer && (
-                <div 
-                  className="mt-3 p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 overflow-hidden"
-                  style={{ animation: 'slideDown 0.3s ease-out' }}
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="font-bold text-purple-600">1</span>
-                      </div>
-                      <div className="flex-1 pt-1">
-                        <div className="font-medium text-gray-900 text-sm">Upload Your Image</div>
-                        <div className="text-xs text-gray-600 mt-0.5">
-                          Take a clear photo of your e-waste item from any angle
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="font-bold text-purple-600">2</span>
-                      </div>
-                      <div className="flex-1 pt-1">
-                        <div className="font-medium text-gray-900 text-sm">AI Analysis</div>
-                        <div className="text-xs text-gray-600 mt-0.5">
-                          Our trained image classification model analyzes visual features, size, and shape patterns
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="font-bold text-purple-600">3</span>
-                      </div>
-                      <div className="flex-1 pt-1">
-                        <div className="font-medium text-gray-900 text-sm">Waste Classification</div>
-                        <div className="text-xs text-gray-600 mt-0.5">
-                          The system identifies the waste type (phone, laptop, battery, etc.) with a confidence score
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="font-bold text-purple-600">4</span>
-                      </div>
-                      <div className="flex-1 pt-1">
-                        <div className="font-medium text-gray-900 text-sm">Results & Verification</div>
-                        <div className="text-xs text-gray-600 mt-0.5">
-                          View detected item, confidence level, estimated value, and environmental impact
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 p-3 bg-white rounded-lg border border-purple-200">
-                    <div className="flex items-center gap-2 text-xs text-purple-700">
-                      <Sparkles className="w-4 h-4" />
-                      <span className="font-medium">Accuracy: 95%+ with trained AI model on thousands of e-waste images</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Animation */}
-            <style dangerouslySetInnerHTML={{ __html: `
-              @keyframes slideDown {
-                from {
-                  opacity: 0;
-                  max-height: 0;
-                  transform: translateY(-10px);
-                }
-                to {
-                  opacity: 1;
-                  max-height: 500px;
-                  transform: translateY(0);
-                }
-              }
-            `}} />
           </div>
         )}
 
@@ -588,11 +546,48 @@ export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProp
 
       {/* Detection History */}
       <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Detections</h3>
-        <div className="text-center text-gray-500 py-8">
-          <Download className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm">Your detection history will appear here</p>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">Recent Detections</h3>
+          <button
+            onClick={fetchRecentDetections}
+            className="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-semibold"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
         </div>
+
+        {loadingHistory ? (
+          <div className="text-center text-gray-500 py-8">
+            <p className="text-sm">Loading recent detections...</p>
+          </div>
+        ) : recentDetections.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            <Download className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm">Your detection history will appear here</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentDetections.map((detection: any, index: number) => (
+              <div
+                key={index}
+                className="flex items-center justify-between bg-gray-50 rounded-lg p-4 border border-gray-200"
+              >
+                <div>
+                  <div className="font-semibold text-gray-900">{detection.name}</div>
+                  <div className="text-xs text-gray-500">
+                    {detection.condition} • {detection.weight} kg • {detection.confidence}% confidence
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="font-bold text-emerald-600">+{detection.points} pts</div>
+                  <div className="text-xs text-gray-500">${detection.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

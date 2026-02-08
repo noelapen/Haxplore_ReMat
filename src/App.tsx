@@ -4,6 +4,7 @@ import { AuthPage } from './components/AuthPage';
 import { UserDashboard } from './components/UserDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ThemeProvider } from './contexts/ThemeContext';
+import 'leaflet/dist/leaflet.css';
 
 type UserType = 'user' | 'admin' | null;
 type AuthState = 'landing' | 'auth' | 'authenticated';
