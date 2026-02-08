@@ -15,6 +15,7 @@ import {
   Map as MapIcon,
   ChevronRight,
   AlertCircle,
+  MoreHorizontal,
 } from 'lucide-react';
 
 interface Bin {
@@ -37,7 +38,7 @@ const BINS: Bin[] = [
     lat: 40.7580,
     lng: -73.9855,
     address: '123 Main St, New York, NY 10001',
-    acceptedItems: ['phone', 'tablet', 'laptop', 'battery', 'cable', 'charger', 'headphones', 'watch'],
+    acceptedItems: ['phone', 'tablet', 'laptop', 'battery', 'cable', 'charger', 'headphones', 'watch', 'other'],
     fillLevel: 45,
     status: 'operational',
   },
@@ -47,7 +48,7 @@ const BINS: Bin[] = [
     lat: 40.7614,
     lng: -73.9776,
     address: '456 Tech Ave, New York, NY 10002',
-    acceptedItems: ['phone', 'laptop', 'tablet', 'hard-drive'],
+    acceptedItems: ['phone', 'laptop', 'tablet', 'hard-drive', 'other'],
     fillLevel: 78,
     status: 'operational',
   },
@@ -57,7 +58,7 @@ const BINS: Bin[] = [
     lat: 40.7489,
     lng: -73.9680,
     address: '789 Park Rd, New York, NY 10003',
-    acceptedItems: ['battery', 'cable', 'charger', 'headphones'],
+    acceptedItems: ['battery', 'cable', 'charger', 'headphones', 'other'],
     fillLevel: 23,
     status: 'operational',
   },
@@ -67,7 +68,7 @@ const BINS: Bin[] = [
     lat: 40.7295,
     lng: -73.9965,
     address: '321 Campus Dr, New York, NY 10004',
-    acceptedItems: ['phone', 'laptop', 'tablet', 'watch', 'battery'],
+    acceptedItems: ['phone', 'laptop', 'tablet', 'watch', 'battery', 'other'],
     fillLevel: 95,
     status: 'full',
   },
@@ -77,7 +78,7 @@ const BINS: Bin[] = [
     lat: 40.7589,
     lng: -73.9851,
     address: '555 Downtown Blvd, New York, NY 10005',
-    acceptedItems: ['phone', 'battery', 'cable', 'charger'],
+    acceptedItems: ['phone', 'battery', 'cable', 'charger', 'other'],
     fillLevel: 12,
     status: 'operational',
   },
@@ -93,6 +94,7 @@ const WASTE_TYPES = [
   { id: 'headphones', label: 'Headphones', icon: Headphones, color: 'bg-pink-500' },
   { id: 'watch', label: 'Watch', icon: Watch, color: 'bg-teal-500' },
   { id: 'hard-drive', label: 'Hard Drive', icon: HardDrive, color: 'bg-red-500' },
+  { id: 'other', label: 'Other', icon: MoreHorizontal, color: 'bg-gray-500' },
 ];
 
 export function BinFinder() {
@@ -101,6 +103,8 @@ export function BinFinder() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [onlyOperational, setOnlyOperational] = useState(true);
   const [maxDistance, setMaxDistance] = useState<number>(5); // km
+  const [showOtherModal, setShowOtherModal] = useState(false);
+  const [customItemName, setCustomItemName] = useState('');
 
   // Calculate distances (mock - using simple lat/lng difference)
   const binsWithDistance = useMemo(() => {

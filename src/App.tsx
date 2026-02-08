@@ -3,6 +3,7 @@ import { LandingPage } from './components/LandingPage';
 import { AuthPage } from './components/AuthPage';
 import { UserDashboard } from './components/UserDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 type UserType = 'user' | 'admin' | null;
 type AuthState = 'landing' | 'auth' | 'authenticated';
@@ -48,27 +49,25 @@ export default function App() {
     setAuthState('landing');
   };
 
-  if (authState === 'landing') {
-    return <LandingPage onSelectUserType={handleUserTypeSelect} />;
-  }
+  return (
+    <ThemeProvider>
+      {authState === 'landing' && <LandingPage onSelectUserType={handleUserTypeSelect} />}
 
-  if (authState === 'auth') {
-    return (
-      <AuthPage
-        userType={userType!}
-        onAuthSuccess={handleAuthSuccess}
-        onBack={handleBackToLanding}
-      />
-    );
-  }
+      {authState === 'auth' && (
+        <AuthPage
+          userType={userType!}
+          onAuthSuccess={handleAuthSuccess}
+          onBack={handleBackToLanding}
+        />
+      )}
 
-  if (authState === 'authenticated') {
-    if (userType === 'admin') {
-      return <AdminDashboard user={currentUser} onLogout={handleLogout} />;
-    } else {
-      return <UserDashboard user={currentUser} onLogout={handleLogout} />;
-    }
-  }
+      {authState === 'authenticated' && userType === 'admin' && (
+        <AdminDashboard user={currentUser} onLogout={handleLogout} />
+      )}
 
-  return null;
+      {authState === 'authenticated' && userType === 'user' && (
+        <UserDashboard user={currentUser} onLogout={handleLogout} />
+      )}
+    </ThemeProvider>
+  );
 }

@@ -3,6 +3,9 @@ import { BinMonitoring } from './admin/BinMonitoring';
 import { Analytics } from './admin/Analytics';
 import { AlertsPanel } from './admin/AlertsPanel';
 import { UserManagement } from './admin/UserManagement';
+import { Notifications } from './Notifications';
+import { AdminTutorial } from './AdminTutorial';
+import { EnhancedMascotWelcome } from './EnhancedMascotWelcome';
 import {
   LayoutDashboard,
   MapPin,
@@ -11,6 +14,7 @@ import {
   Users,
   LogOut,
   Bell,
+  HelpCircle,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -23,6 +27,24 @@ type ActiveView = 'overview' | 'bins' | 'analytics' | 'alerts' | 'users';
 export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const [activeView, setActiveView] = useState<ActiveView>('overview');
   const [alertCount] = useState(3);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    return !localStorage.getItem('admin_tutorial_dont_show');
+  });
+  const [showMascot, setShowMascot] = useState(false);
+
+  const handleTutorialComplete = () => {
+    setShowTutorial(false);
+    setShowMascot(true);
+  };
+
+  const handleMascotComplete = () => {
+    setShowMascot(false);
+  };
+
+  const handleRestartTutorial = () => {
+    setShowTutorial(true);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -155,7 +177,10 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                 {activeView === 'users' && 'View and manage user accounts'}
               </p>
             </div>
-            <button className="relative p-3 hover:bg-gray-100 rounded-lg transition-colors">
+            <button
+              onClick={() => setShowNotifications(true)}
+              className="relative p-3 hover:bg-gray-100 rounded-lg transition-colors"
+            >
               <Bell className="w-6 h-6 text-gray-600" />
               {alertCount > 0 && (
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -163,6 +188,13 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
             </button>
           </div>
         </header>
+
+        {/* Notifications Panel */}
+        <Notifications
+          isOpen={showNotifications}
+          onClose={() => setShowNotifications(false)}
+          userType="admin"
+        />
 
         {/* Content Area */}
         <div className="p-8">
@@ -173,6 +205,21 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
           {activeView === 'users' && <UserManagement />}
         </div>
       </main>
+
+      {/* Tutorial for first-time admin users */}
+      <AdminTutorial
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
+        onComplete={handleTutorialComplete}
+      />
+
+      {/* Mascot Welcome after tutorial */}
+      {showMascot && (
+        <EnhancedMascotWelcome
+          userName={user.name}
+          onComplete={handleMascotComplete}
+        />
+      )}
     </div>
   );
 }

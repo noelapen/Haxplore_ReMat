@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Download,
   RefreshCw,
+  Info,
+  MoreHorizontal,
 } from 'lucide-react';
 
 interface WasteDetectionProps {
@@ -42,6 +44,7 @@ const WASTE_ITEMS = [
   { type: 'headphones', name: 'Headphones', baseValue: 10, basePoints: 100, co2: 6 },
   { type: 'watch', name: 'Smart Watch', baseValue: 20, basePoints: 200, co2: 10 },
   { type: 'hard-drive', name: 'Hard Drive', baseValue: 12, basePoints: 120, co2: 8 },
+  { type: 'other', name: 'Other Electronics', baseValue: 6, basePoints: 60, co2: 4 },
 ];
 
 export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProps) {
@@ -51,6 +54,7 @@ export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProp
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [manualOverride, setManualOverride] = useState(false);
+  const [showAIExplainer, setShowAIExplainer] = useState(false);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -237,6 +241,112 @@ export function WasteDetection({ user, onRecyclingComplete }: WasteDetectionProp
                 </div>
               </div>
             </div>
+
+            {/* AI Detection Explainer - Collapsible */}
+            <div className="mt-6">
+              <button
+                onClick={() => setShowAIExplainer(!showAIExplainer)}
+                className="w-full p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 hover:border-purple-300 transition-all flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Info className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <h4 className="font-semibold text-gray-900">How AI Image Detection Works</h4>
+                    <p className="text-sm text-gray-600">
+                      Click to learn more about our AI system
+                    </p>
+                  </div>
+                </div>
+                <div className={`transform transition-transform duration-300 ${showAIExplainer ? 'rotate-180' : ''}`}>
+                  <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+
+              {/* Collapsible Content */}
+              {showAIExplainer && (
+                <div 
+                  className="mt-3 p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 overflow-hidden"
+                  style={{ animation: 'slideDown 0.3s ease-out' }}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="font-bold text-purple-600">1</span>
+                      </div>
+                      <div className="flex-1 pt-1">
+                        <div className="font-medium text-gray-900 text-sm">Upload Your Image</div>
+                        <div className="text-xs text-gray-600 mt-0.5">
+                          Take a clear photo of your e-waste item from any angle
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="font-bold text-purple-600">2</span>
+                      </div>
+                      <div className="flex-1 pt-1">
+                        <div className="font-medium text-gray-900 text-sm">AI Analysis</div>
+                        <div className="text-xs text-gray-600 mt-0.5">
+                          Our trained image classification model analyzes visual features, size, and shape patterns
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="font-bold text-purple-600">3</span>
+                      </div>
+                      <div className="flex-1 pt-1">
+                        <div className="font-medium text-gray-900 text-sm">Waste Classification</div>
+                        <div className="text-xs text-gray-600 mt-0.5">
+                          The system identifies the waste type (phone, laptop, battery, etc.) with a confidence score
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="font-bold text-purple-600">4</span>
+                      </div>
+                      <div className="flex-1 pt-1">
+                        <div className="font-medium text-gray-900 text-sm">Results & Verification</div>
+                        <div className="text-xs text-gray-600 mt-0.5">
+                          View detected item, confidence level, estimated value, and environmental impact
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-white rounded-lg border border-purple-200">
+                    <div className="flex items-center gap-2 text-xs text-purple-700">
+                      <Sparkles className="w-4 h-4" />
+                      <span className="font-medium">Accuracy: 95%+ with trained AI model on thousands of e-waste images</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Animation */}
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes slideDown {
+                from {
+                  opacity: 0;
+                  max-height: 0;
+                  transform: translateY(-10px);
+                }
+                to {
+                  opacity: 1;
+                  max-height: 500px;
+                  transform: translateY(0);
+                }
+              }
+            `}} />
           </div>
         )}
 
